@@ -20,7 +20,8 @@ jobs:
   test:
     name: Build & Test (Node ${{ matrix.node-version }})
     if: github.event_name != 'schedule'
-    runs-on: kalle-works-arm64
+    # A fork's code never runs on our own runners.
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'kalle-works-arm64' }}
     strategy:
       matrix:
         node-version: ["22", "24"]
@@ -35,7 +36,7 @@ jobs:
 
   published:
     name: Matches euromail.dev
-    runs-on: kalle-works-arm64
+    runs-on: ${{ github.event.pull_request.head.repo.fork && 'ubuntu-latest' || 'kalle-works-arm64' }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -53,6 +54,10 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     # npm trusted publishing (OIDC) does not support self-hosted runners.
     runs-on: ubuntu-latest
+    # A newer push must not cancel a publish halfway.
+    concurrency:
+      group: npm-publish
+      cancel-in-progress: false
     permissions:
       contents: read
       id-token: write
@@ -68,19 +73,26 @@ jobs:
       - name: Publish if the version changed
         # Trusted publishing needs npm >= 11.5.1 and Node 22 ships npm 10.
         # Upgrading the global npm in place breaks mid-install, so npx runs a
-        # fresh one instead.
+        # pinned one instead.
         run: |
           LOCAL=$(node -p "require('./package.json').version")
-          # Only "never published" (E404) counts as 0.0.0; any other registry
-          # error fails the step instead of attempting a publish.
-          if ! REMOTE=$(npm view @euromail/mcp-server version 2>npm-view.err); then
-            grep -q E404 npm-view.err || { cat npm-view.err; exit 1; }
-            REMOTE="0.0.0"
-          fi
-          if [ "$LOCAL" = "$REMOTE" ]; then
+          # Asks for this exact version, so a revert or a lower version is
+          # never republished over `latest`. Only "not published" (E404)
+          # means publish; any other registry error fails the step.
+          if npm view "@euromail/mcp-server@$LOCAL" version 2>npm-view.err | grep -q .; then
             echo "Version $LOCAL is already published, skipping."
-          else
-            echo "Publishing $LOCAL (registry has $REMOTE)"
-            unset NODE_AUTH_TOKEN
-            npx -y npm@latest publish --access public
+            exit 0
           fi
+          if [ -s npm-view.err ]; then
+            grep -q E404 npm-view.err || { cat npm-view.err; exit 1; }
+          fi
+          # npm moves `latest` to whatever is published, so a version below
+          # it would roll every `npx` user back.
+          LATEST=$(npm view @euromail/mcp-server version)
+          if [ "$(printf '%s\n%s\n' "$LATEST" "$LOCAL" | sort -V | tail -n 1)" != "$LOCAL" ]; then
+            echo "::error::$LOCAL is lower than the published latest, $LATEST"
+            exit 1
+          fi
+          echo "Publishing $LOCAL"
+          unset NODE_AUTH_TOKEN
+          npx -y npm@11.12.1 publish --access public

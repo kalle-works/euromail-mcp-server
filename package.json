@@ -4,7 +4,7 @@
   "description": "MCP server for the EuroMail transactional email API. Lets AI assistants send email and manage domains, templates, webhooks and agent mailboxes.",
   "type": "module",
   "bin": {
-    "euromail-mcp-server": "./dist/index.js"
+    "euromail-mcp-server": "dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [
