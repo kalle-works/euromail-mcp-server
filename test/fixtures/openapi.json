@@ -3423,21 +3423,17 @@
           },
           "lease_expires_at": {
             "format": "date-time",
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "lease_token": {
             "format": "uuid",
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           }
         },
         "required": [
-          "data"
+          "data",
+          "lease_token",
+          "lease_expires_at"
         ],
         "type": "object"
       },
