@@ -1,6 +1,6 @@
 {
   "name": "@euromail/mcp-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for the EuroMail transactional email API. Lets AI assistants send email and manage domains, templates, webhooks and agent mailboxes.",
   "type": "module",
   "bin": {
