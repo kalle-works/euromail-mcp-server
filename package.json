@@ -1,0 +1,52 @@
+{
+  "name": "@euromail/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for the EuroMail transactional email API. Lets AI assistants send email and manage domains, templates, webhooks and agent mailboxes.",
+  "type": "module",
+  "bin": {
+    "euromail-mcp-server": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.map"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "npm run build && node --test \"dist/**/*.test.js\"",
+    "check:published": "npm run build && node scripts/check-published.mjs",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "euromail",
+    "email",
+    "transactional-email"
+  ],
+  "homepage": "https://euromail.dev/docs/guides/mcp-server/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalle-works/euromail-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kalle-works/euromail-mcp-server/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

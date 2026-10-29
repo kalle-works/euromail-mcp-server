@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Daily: the API and the docs guide change in the euromail.dev repo.
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build & Test (Node ${{ matrix.node-version }})
+    if: github.event_name != 'schedule'
+    runs-on: kalle-works-arm64
+    strategy:
+      matrix:
+        node-version: ["22", "24"]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  published:
+    name: Matches euromail.dev
+    runs-on: kalle-works-arm64
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      # The guide follows a new tool, so it is checked on the schedule rather
+      # than blocking the PR that adds the tool.
+      - run: npm run check:published -- ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '--guide' || '' }}
+
+  publish:
+    name: Publish to npm
+    needs: [test, published]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # npm trusted publishing (OIDC) does not support self-hosted runners.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm run build
+      - name: Publish if the version changed
+        # Trusted publishing needs npm >= 11.5.1 and Node 22 ships npm 10.
+        # Upgrading the global npm in place breaks mid-install, so npx runs a
+        # fresh one instead.
+        run: |
+          LOCAL=$(node -p "require('./package.json').version")
+          # Only "never published" (E404) counts as 0.0.0; any other registry
+          # error fails the step instead of attempting a publish.
+          if ! REMOTE=$(npm view @euromail/mcp-server version 2>npm-view.err); then
+            grep -q E404 npm-view.err || { cat npm-view.err; exit 1; }
+            REMOTE="0.0.0"
+          fi
+          if [ "$LOCAL" = "$REMOTE" ]; then
+            echo "Version $LOCAL is already published, skipping."
+          else
+            echo "Publishing $LOCAL (registry has $REMOTE)"
+            unset NODE_AUTH_TOKEN
+            npx -y npm@latest publish --access public
+          fi
