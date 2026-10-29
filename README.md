@@ -1,6 +1,6 @@
 # @euromail/mcp-server
 
-An [MCP](https://modelcontextprotocol.io) server for the [EuroMail](https://euromail.dev) email API. It lets an AI assistant send email, check delivery status, and manage domains, templates, webhooks, contact lists and agent mailboxes. The server calls the EuroMail API over HTTPS, and the API runs in Finland, so your mail stays in the EU.
+An [MCP](https://modelcontextprotocol.io) server for the [EuroMail](https://euromail.dev) email API. It lets an AI assistant send email, check delivery status, and manage domains, templates, webhooks, contact lists and agent mailboxes. The server calls the EuroMail API over HTTPS, and EuroMail stores your mail in Finland. Whatever the assistant reads or writes through these tools also goes to the AI model it runs on, so choose one your data rules allow.
 
 Requires Node.js 22 or newer and a EuroMail API key. Create one in the [dashboard](https://dashboard.euromail.dev). Give the assistant its own key so you can revoke it without touching your other integrations.
 

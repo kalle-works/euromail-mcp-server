@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - The `bin` path is in the form npm expects, so publishing no longer warns that it was removed.
+- The README no longer says your mail stays in the EU: what the assistant reads also goes to the AI model it runs on.
 
 ## [1.0.0] - 2026-10-29
 
